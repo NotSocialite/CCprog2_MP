@@ -1,0 +1,7 @@
+R
+
+I A B I R
+B I R R I
+R R I B R
+R R B B B
+R B I B I

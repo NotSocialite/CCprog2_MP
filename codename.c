@@ -1,12 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #define MAX_PLAYERS 100
 #define MAX_CURRENT_PLAYERS 50
 #define MAX_TEAM_SIZE 25
+#define NUMBER_OF_CODENAMES 25
+#define WORD_LENGTH 36
 
-typedef char Str36[36];
+typedef char Str36[WORD_LENGTH];
 
 typedef struct 
 {
@@ -40,6 +43,89 @@ void displayStats(Player playerList[])
             printf("\t- %s\n", playerList[i].username);
             printf("\t\tGames Played: %d\n", playerList[i].gamesPlayed);
         }
+    }
+}
+
+void displayBoard(Str36 codenames[])
+{
+    printf("Codenames Board:\n");
+    for(int i = 0; i < NUMBER_OF_CODENAMES; i++)
+    {
+        printf("%s ", codenames[i]);
+        if((i + 1) % 5 == 0)
+        {
+            printf("\n");
+        }
+    }
+    printf("\n");
+}
+
+void loadPlayers(Player playerList[])
+{
+    FILE *file = fopen("players.txt", "r");
+    if(file == NULL)
+    {
+        printf("Error opening players file.\n");
+        exit(1);
+    }
+    
+    for(int i = 0; i < MAX_PLAYERS; i++)
+    {
+        if(fscanf(file, "%s %d %d %d %d", playerList[i].username, &playerList[i].gamesPlayed, &playerList[i].wins, &playerList[i].spyMasterWins, &playerList[i].agentWins) != 5)
+        {
+            break; // Stop reading if we reach the end of the file
+        }
+    }
+    
+    fclose(file);
+}
+
+void loadCodenames(Str36 codenames[])
+{
+    FILE *file = fopen("codenames.txt", "r");
+    if(file == NULL)
+    {
+        printf("Error opening codenames file.\n");
+        exit(1);
+    }
+    
+    for(int i = 0; i < 400; i++)
+    {
+        fgets(codenames[i], WORD_LENGTH, file);
+        if (codenames[i][strlen(codenames[i]) - 1] == '\n') // Check if the last character is a newline
+        {
+            codenames[i][strlen(codenames[i]) - 1] = '\0'; // Remove newline character
+        }
+    }
+    
+    fclose(file);
+}
+
+void randomizeCodenames(Str36 codenames[], Str36 codenamesList[])
+{
+    int usedWords[400] = {0};
+    int index;
+    srand(time(NULL));
+
+    for(int i = 0; i < 25; i++)
+    {
+        do
+        {
+            index = rand() % 400; // Randomly select an index from the codenames list
+        } while(usedWords[index]); // Ensure the index hasn't been used
+
+        usedWords[index] = 1; // Mark the index as used
+        strcpy(codenames[i], codenamesList[index]); // Copy the selected codename to the codenames array
+    }
+    
+    // Shuffle the codenames
+    for(int i = 0; i < 25; i++)
+    {
+        int j = rand() % 25;
+        Str36 temp;
+        strcpy(temp, codenames[i]);
+        strcpy(codenames[i], codenames[j]);
+        strcpy(codenames[j], temp);
     }
 }
 
@@ -251,7 +337,7 @@ void greetPlayers(Str36 name)
     printf("Welcome, %s\n\n", name);
 }
 
-void gameStart(Player playerList[])
+void gameStart(Player playerList[], Str36 codenamesList[])
 {
     Player currentPlayers[MAX_CURRENT_PLAYERS] = {0};
     Player blueTeam[MAX_TEAM_SIZE] = {0};
@@ -383,6 +469,26 @@ void gameStart(Player playerList[])
         }
     }
     printf("Red Spymaster: %s\n\n", redSpymaster);
+    printf("\nType 'READY' to start the game\n");
+    done = 0;
+    do
+    {
+        printf(">> ");
+        scanf("%s", selectOption);
+        if(strcmp(selectOption, "READY") == 0)
+        {
+            done = 1;
+        }
+        else
+        {
+            printf("Type 'READY' to start the game.\n");
+        }
+    } while(!strcmp(selectOption, "READY"));
+    randomizeCodenames(codenames, codenamesList);
+    printf("\nCodenames have been randomized!\n\n");
+    printf("Game starting with %d players on Blue Team and %d players on Red Team.\n", playerCountBlue, playerCountRed);
+    printf("Spymasters are ready to give clues!\n\n");
+    displayBoard(codenames);
 
     // greetPlayers(name);
 }
@@ -390,16 +496,13 @@ void gameStart(Player playerList[])
 int main()
 {
     Player playerList[MAX_PLAYERS] = {0};
+    Str36 codenamesList[400] = {0};
     char selectOption[2];
     int quitGame = 0;
 
-    strcpy(playerList[0].username, "Alfred");
-    playerList[0].gamesPlayed = 15;
-    strcpy(playerList[1].username, "rokishi");
-    playerList[1].gamesPlayed = 10;
-    strcpy(playerList[2].username, "NotSocialite"); 
-    playerList[2].gamesPlayed = 5;
-    
+    loadPlayers(playerList);
+    loadCodenames(codenamesList);
+
     do
     {
         displayMenu();
@@ -411,7 +514,7 @@ int main()
             switch(selectOption[0])
             {
                 case '1':
-                    gameStart(playerList);
+                    gameStart(playerList, codenamesList);
                     break;
                 case '2':
                     continueGame();
