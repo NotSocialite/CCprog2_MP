@@ -42,6 +42,9 @@ void displayStats(Player playerList[])
         {
             printf("\t- %s\n", playerList[i].username);
             printf("\t\tGames Played: %d\n", playerList[i].gamesPlayed);
+            printf("\t\tTotal Wins: %d\n", playerList[i].wins);
+            printf("\t\tWins as Spymaster: %d\n", playerList[i].spyMasterWins);
+            printf("\t\tWins as Agent: %d\n", playerList[i].agentWins);
         }
     }
 }
@@ -483,7 +486,7 @@ void gameStart(Player playerList[], Str36 codenamesList[])
         {
             printf("Type 'READY' to start the game.\n");
         }
-    } while(!strcmp(selectOption, "READY"));
+    } while(strcmp(selectOption, "READY"));
     randomizeCodenames(codenames, codenamesList);
     printf("\nCodenames have been randomized!\n\n");
     printf("Game starting with %d players on Blue Team and %d players on Red Team.\n", playerCountBlue, playerCountRed);
