@@ -8,6 +8,8 @@
 #define MAX_TEAM_SIZE 25
 #define NUMBER_OF_CODENAMES 25
 #define WORD_LENGTH 36
+#define ROWS 5
+#define COLUMNS 5
 
 typedef char Str36[WORD_LENGTH];
 
@@ -51,16 +53,29 @@ void displayStats(Player playerList[])
 
 void displayBoard(Str36 codenames[])
 {
-    printf("Codenames Board:\n");
-    for(int i = 0; i < NUMBER_OF_CODENAMES; i++)
+    int gridCount = 0;
+    size_t length;
+
+    printf("Codenames Board:\n\n");
+    for(int i = 0; i < ROWS; i++)
     {
-        printf("%s ", codenames[i]);
-        if((i + 1) % 5 == 0)
+        for (int j = 0; j < COLUMNS; j++)
         {
-            printf("\n");
+            length = strlen(codenames[gridCount]);
+            printf("[%d] ", gridCount + 1);
+            if(gridCount < 9)
+            {
+                printf(" ");
+            }
+            printf("%s ", codenames[gridCount]);
+            for(int k = 0; k < 16 - length; k++)
+            {
+                printf(" ");
+            }
+            gridCount++;
         }
+        printf("\n");
     }
-    printf("\n");
 }
 
 void loadPlayers(Player playerList[])
@@ -68,7 +83,7 @@ void loadPlayers(Player playerList[])
     FILE *file = fopen("players.txt", "r");
     if(file == NULL)
     {
-        printf("Error opening players file.\n");
+        printf("Error opening keycard file.\n");
         exit(1);
     }
     
@@ -104,6 +119,49 @@ void loadCodenames(Str36 codenames[])
     fclose(file);
 }
 
+void selectKeycard(char keycard[], char *firstMove)
+{
+    int keycardN, gridCount = 0;
+    FILE *file;
+
+    keycardN = rand() % 4;
+
+    switch(keycardN)
+    {
+        case 0:
+            file = fopen("01.txt", "r");
+            break;
+        case 1:
+            file = fopen("02.txt", "r");
+            break;
+        case 2:
+            file = fopen("03.txt", "r");
+            break;
+        case 3:
+            file = fopen("04.txt", "r");
+            break;
+    }
+
+    if(file == NULL)
+    {
+        printf("Error opening players file.\n");
+        exit(1);
+    }
+
+    fscanf(file, "%c", firstMove);
+    
+    for(int i = 0; i < 5; i++)
+    {
+        for(int j = 0; j < 5; j++)
+        {
+            fscanf(file, " %c", &keycard[gridCount]);
+            gridCount++;
+        }
+    }
+    
+    fclose(file);
+}
+
 void randomizeCodenames(Str36 codenames[], Str36 codenamesList[])
 {
     int usedWords[400] = {0};
@@ -119,16 +177,6 @@ void randomizeCodenames(Str36 codenames[], Str36 codenamesList[])
 
         usedWords[index] = 1; // Mark the index as used
         strcpy(codenames[i], codenamesList[index]); // Copy the selected codename to the codenames array
-    }
-    
-    // Shuffle the codenames
-    for(int i = 0; i < 25; i++)
-    {
-        int j = rand() % 25;
-        Str36 temp;
-        strcpy(temp, codenames[i]);
-        strcpy(codenames[i], codenames[j]);
-        strcpy(codenames[j], temp);
     }
 }
 
@@ -345,10 +393,12 @@ void gameStart(Player playerList[], Str36 codenamesList[])
     Player currentPlayers[MAX_CURRENT_PLAYERS] = {0};
     Player blueTeam[MAX_TEAM_SIZE] = {0};
     Player redTeam[MAX_TEAM_SIZE] = {0};
-    char selectOption[2];
-    int done = 0, endGame = 0, playerCountBlue = 0, playerCountRed = 0;
     Str36 blueSpymaster, redSpymaster;
-    Str36 codenames[25];
+    Str36 codenames[NUMBER_OF_CODENAMES];
+    char keycard[NUMBER_OF_CODENAMES];
+    char selectOption[2];
+    char firstMove;
+    int done = 0, endGame = 0, playerCountBlue = 0, playerCountRed = 0;
 
     do
     {
@@ -385,7 +435,14 @@ void gameStart(Player playerList[], Str36 codenamesList[])
                         removePlayer(currentPlayers, blueTeam, &playerCountBlue, 'b');
                         break;
                     case '0':
-                        done = 1;
+                        if(playerCountBlue < 2)
+                        {
+                            printf("You need at least 2 players on the Blue Team to start the game.\n");
+                        }
+                        else
+                        {
+                            done = 1;
+                        }
                         break;
                     default:
                         printf("Invalid option. Please try again.\n\n");
@@ -431,7 +488,15 @@ void gameStart(Player playerList[], Str36 codenamesList[])
                         removePlayer(currentPlayers, redTeam, &playerCountRed, 'r');
                         break;
                     case '0':
-                        done = 1;
+                        if(playerCountRed < 2)
+                        {
+                            printf("You need at least 2 players on the Red Team to start the game.\n");
+                        }
+
+                        else
+                        {
+                            done = 1;
+                        }
                         break;
                     default:
                         printf("Invalid option. Please try again.\n\n");
@@ -472,7 +537,7 @@ void gameStart(Player playerList[], Str36 codenamesList[])
         }
     }
     printf("Red Spymaster: %s\n\n", redSpymaster);
-    printf("\nType 'READY' to start the game\n");
+    printf("Type 'READY' to start the game\n");
     done = 0;
     do
     {
@@ -486,12 +551,23 @@ void gameStart(Player playerList[], Str36 codenamesList[])
         {
             printf("Type 'READY' to start the game.\n");
         }
-    } while(strcmp(selectOption, "READY"));
+    } while(!done);
     randomizeCodenames(codenames, codenamesList);
+    selectKeycard(keycard, &firstMove);
     printf("\nCodenames have been randomized!\n\n");
     printf("Game starting with %d players on Blue Team and %d players on Red Team.\n", playerCountBlue, playerCountRed);
     printf("Spymasters are ready to give clues!\n\n");
     displayBoard(codenames);
+    printf("\nFirst move is by: %c\n", firstMove);
+    printf("Keycard: \n");
+    for(int i = 0; i < ROWS; i++)
+    {
+        for(int j = 0; j < COLUMNS; j++)
+        {
+            printf("%c ", keycard[i * COLUMNS + j]);
+        }
+        printf("\n");
+    }
 
     // greetPlayers(name);
 }
