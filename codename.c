@@ -22,6 +22,26 @@ typedef struct
     int agentWins;
 } Player;
 
+void updatePlayers(Player playerList[])
+{
+    FILE *file = fopen("players.txt", "w");
+    if(file == NULL)
+    {
+        printf("Error opening players file.\n");
+        exit(1);
+    }
+    
+    for(int i = 0; i < MAX_PLAYERS; i++)
+    {
+        if(playerList[i].username[0] != '\0')
+        {
+            fprintf(file, "%s %d %d %d %d\n", playerList[i].username, playerList[i].gamesPlayed, playerList[i].wins, playerList[i].spyMasterWins, playerList[i].agentWins);
+        }
+    }
+    
+    fclose(file);
+}
+
 void displayMenu()
 {
     printf("Welcome to Codenames!\n");
@@ -615,5 +635,7 @@ int main()
         
     } while(!quitGame);
     
+    updatePlayers(playerList);
+    printf("Thank you for playing Codenames!\n");
     return 0;
 }
