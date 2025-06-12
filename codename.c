@@ -259,6 +259,7 @@ void gameStart(Player playerList[])
     char selectOption[2];
     int done = 0, endGame = 0, playerCountBlue = 0, playerCountRed = 0;
     Str36 blueSpymaster, redSpymaster;
+    Str36 codenames[25];
 
     do
     {
