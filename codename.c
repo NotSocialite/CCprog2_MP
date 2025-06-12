@@ -39,6 +39,35 @@ void displayStats(Player playerList[])
     }
 }
 
+void selectSpymaster(Player team[], Str36 spyMaster)
+{
+    int done = 0, teamCount = 0, selectOption;
+    while(!done)
+    {
+        printf("Pick a spymaster: \n");
+        for(int i = 0; i < 25; i++)
+        {
+            if(team[i].username[0] != '\0')
+            {
+                printf("\t[%d] %s\n", i + 1, team[i].username);
+                teamCount++;
+            }
+        }
+        printf(">> ");
+        scanf("%d", &selectOption);
+        
+        if(selectOption > 0 && selectOption <= teamCount)
+        {
+            strcpy(spyMaster, team[selectOption - 1].username);
+            done = 1;
+        }
+        else
+        {
+            printf("Invalid option. Please try again.\n\n");
+        }
+    }
+}
+
 void addExisting(Player playerList[], Player currentPlayers[], Player team[], int *playerCount, int total)
 {
     Str36 username;
@@ -225,6 +254,7 @@ void gameStart(Player playerList[])
     Player redTeam[25] = {0};
     char selectOption[2];
     int done = 0, endGame = 0, playerCountBlue = 0, playerCountRed = 0;
+    Str36 blueSpymaster, redSpymaster;
 
     do
     {
@@ -272,6 +302,8 @@ void gameStart(Player playerList[])
                 printf("Invalid option. Please try again.\n\n");
             }
         }
+        selectSpymaster(blueTeam, blueSpymaster);
+
         done = 0;
         while(!done)
         {
@@ -316,9 +348,11 @@ void gameStart(Player playerList[])
                 printf("Invalid option. Please try again.\n\n");
             }
         }
+        selectSpymaster(redTeam, redSpymaster);
         endGame = 1;
     } while(!endGame);
-    printf("Current Players:\n");
+
+    printf("\nCurrent Players:\n");
     for(int i = 0; i < 50; i++)
     {
         if(currentPlayers[i].username[0] != '\0')
@@ -326,7 +360,7 @@ void gameStart(Player playerList[])
             printf("\t- %s\n", currentPlayers[i].username);
         }
     }
-    printf("Blue Players:\n");
+    printf("\nBlue Players:\n");
     for(int i = 0; i < 25; i++)
     {
         if(blueTeam[i].username[0] != '\0')
@@ -334,6 +368,7 @@ void gameStart(Player playerList[])
             printf("\t- %s\n", blueTeam[i].username);
         }
     }
+    printf("Blue Spymaster: %s\n\n", blueSpymaster);
     printf("Red Players:\n");
     for(int i = 0; i < 25; i++)
     {
@@ -342,6 +377,8 @@ void gameStart(Player playerList[])
             printf("\t- %s\n", redTeam[i].username);
         }
     }
+    printf("Red Spymaster: %s\n\n", redSpymaster);
+
     // greetPlayers(name);
 }
 
