@@ -2,6 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define MAX_PLAYERS 100
+#define MAX_CURRENT_PLAYERS 50
+#define MAX_TEAM_SIZE 25
+
 typedef char Str36[36];
 
 typedef struct 
@@ -29,7 +33,7 @@ void continueGame()
 void displayStats(Player playerList[])
 {
     printf("Leaderboard:\n");
-    for(int i = 0; i < 100; i++)
+    for(int i = 0; i < MAX_PLAYERS; i++)
     {
         if(playerList[i].username[0] != '\0')
         {
@@ -45,7 +49,7 @@ void selectSpymaster(Player team[], Str36 spyMaster)
     while(!done)
     {
         printf("Pick a spymaster: \n");
-        for(int i = 0; i < 25; i++)
+        for(int i = 0; i < MAX_TEAM_SIZE; i++)
         {
             if(team[i].username[0] != '\0')
             {
@@ -78,12 +82,12 @@ void addExisting(Player playerList[], Player currentPlayers[], Player team[], in
         validUser = 0;
         notPlaying = 0;
         printf("Player List:\n");
-        for(int i = 0; i < 100; i++)
+        for(int i = 0; i < MAX_PLAYERS; i++)
         {
             if(playerList[i].username[0] != '\0')
             {
                 printf("\t- %s ", playerList[i].username);
-                for(int j = 0; j < 50; j++)
+                for(int j = 0; j < MAX_CURRENT_PLAYERS; j++)
                 {
                     if(!strcmp(playerList[i].username, currentPlayers[j].username))
                     {
@@ -98,7 +102,7 @@ void addExisting(Player playerList[], Player currentPlayers[], Player team[], in
         scanf("%s", username);
         returnFlag = strcmp(username, "return");
         notPlaying = 1;
-        for(int i = 0; i < 100; i++)
+        for(int i = 0; i < MAX_PLAYERS; i++)
         {
             if(!strcmp(playerList[i].username, username))
             {
@@ -110,7 +114,7 @@ void addExisting(Player playerList[], Player currentPlayers[], Player team[], in
         {
             validUser = 1;
         }
-        for(int i = 0; i < 50; i++)
+        for(int i = 0; i < MAX_CURRENT_PLAYERS; i++)
         {
             if (!strcmp(currentPlayers[i].username, username))
             {
@@ -144,7 +148,7 @@ void addNew(Player playerList[], Player currentPlayers[], Player team[], int *pl
         scanf("%s", username);
         returnFlag = strcmp(username, "return");
         validUser = 1;
-        for(int i = 0; i < 100; i++)
+        for(int i = 0; i < MAX_PLAYERS; i++)
         {
             if(!strcmp(playerList[i].username, username))
             {
@@ -164,7 +168,7 @@ void addNew(Player playerList[], Player currentPlayers[], Player team[], int *pl
         strcpy(currentPlayers[total].username, username);
         (*playerCount)++;
         validUser = 0;
-        for(int i = 0; i < 100; i++)
+        for(int i = 0; i < MAX_PLAYERS; i++)
         {
             if(!validUser && playerList[i].username[0] == '\0')
             {
@@ -192,7 +196,7 @@ void removePlayer(Player currentPlayers[], Player team[], int *playerCount, char
                 printf("Current Red Team:\n");
                 break;
         }
-        for(int i = 0; i < 25; i++)
+        for(int i = 0; i < MAX_TEAM_SIZE; i++)
         {
             if(team[i].username[0] != '\0')
             {
@@ -203,7 +207,7 @@ void removePlayer(Player currentPlayers[], Player team[], int *playerCount, char
         printf("Enter which player to remove: ");
         scanf("%s", username);
         returnFlag = strcmp(username, "return");
-        for(int i = 0; i < 25; i++)
+        for(int i = 0; i < MAX_TEAM_SIZE; i++)
         {
             if(!strcmp(team[i].username, username))
             {
@@ -222,7 +226,7 @@ void removePlayer(Player currentPlayers[], Player team[], int *playerCount, char
 
     if(returnFlag)
     {
-        for(int i = 0; i < 25; i++)
+        for(int i = 0; i < MAX_TEAM_SIZE; i++)
         {
             if(!strcmp(team[i].username, username))
             {
@@ -230,7 +234,7 @@ void removePlayer(Player currentPlayers[], Player team[], int *playerCount, char
             }
         }
         memset(&team[playerNum], 0, sizeof(Player));
-        for(int i = 0; i < 25; i++)
+        for(int i = 0; i < MAX_TEAM_SIZE; i++)
         {
             if(!strcmp(currentPlayers[i].username, username))
             {
@@ -249,9 +253,9 @@ void greetPlayers(Str36 name)
 
 void gameStart(Player playerList[])
 {
-    Player currentPlayers[50] = {0};
-    Player blueTeam[25] = {0};
-    Player redTeam[25] = {0};
+    Player currentPlayers[MAX_CURRENT_PLAYERS] = {0};
+    Player blueTeam[MAX_TEAM_SIZE] = {0};
+    Player redTeam[MAX_TEAM_SIZE] = {0};
     char selectOption[2];
     int done = 0, endGame = 0, playerCountBlue = 0, playerCountRed = 0;
     Str36 blueSpymaster, redSpymaster;
@@ -262,7 +266,7 @@ void gameStart(Player playerList[])
         while(!done)
         {
             printf("Current Blue Team Members: \n");
-            for(int i = 0; i < 25; i++)
+            for(int i = 0; i < MAX_TEAM_SIZE; i++)
             {
                 if(blueTeam[i].username[0] != '\0')
                 {
@@ -308,7 +312,7 @@ void gameStart(Player playerList[])
         while(!done)
         {
             printf("Current Red Team Members: \n");
-            for(int i = 0; i < 25; i++)
+            for(int i = 0; i < MAX_TEAM_SIZE; i++)
             {
                 if(redTeam[i].username[0] != '\0')
                 {
@@ -353,7 +357,7 @@ void gameStart(Player playerList[])
     } while(!endGame);
 
     printf("\nCurrent Players:\n");
-    for(int i = 0; i < 50; i++)
+    for(int i = 0; i < MAX_CURRENT_PLAYERS; i++)
     {
         if(currentPlayers[i].username[0] != '\0')
         {
@@ -361,7 +365,7 @@ void gameStart(Player playerList[])
         }
     }
     printf("\nBlue Players:\n");
-    for(int i = 0; i < 25; i++)
+    for(int i = 0; i < MAX_TEAM_SIZE; i++)
     {
         if(blueTeam[i].username[0] != '\0')
         {
@@ -370,7 +374,7 @@ void gameStart(Player playerList[])
     }
     printf("Blue Spymaster: %s\n\n", blueSpymaster);
     printf("Red Players:\n");
-    for(int i = 0; i < 25; i++)
+    for(int i = 0; i < MAX_TEAM_SIZE; i++)
     {
         if(redTeam[i].username[0] != '\0')
         {
@@ -384,7 +388,7 @@ void gameStart(Player playerList[])
 
 int main()
 {
-    Player playerList[100] = {0};
+    Player playerList[MAX_PLAYERS] = {0};
     char selectOption[2];
     int quitGame = 0;
 
