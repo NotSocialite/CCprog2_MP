@@ -98,6 +98,34 @@ void displayBoard(Str36 codenames[])
     }
 }
 
+void displayBoardWithKeycard(Str36 codenames[], char keycard[])
+{
+    int gridCount = 0;
+    size_t length;
+
+    printf("Codenames Board with Keycard:\n\n");
+    for(int i = 0; i < ROWS; i++)
+    {
+        for (int j = 0; j < COLUMNS; j++)
+        {
+            length = strlen(codenames[gridCount]);
+            printf("[%d] ", gridCount + 1);
+            if(gridCount < 9)
+            {
+                printf(" ");
+            }
+            printf("%s ", codenames[gridCount]);
+            printf("(%c) ", keycard[gridCount]);
+            for(int k = 0; k < 12 - length; k++)
+            {
+                printf(" ");
+            }
+            gridCount++;
+        }
+        printf("\n");
+    }
+}
+
 void loadPlayers(Player playerList[])
 {
     FILE *file = fopen("players.txt", "r");
@@ -137,6 +165,157 @@ void loadCodenames(Str36 codenames[])
     }
     
     fclose(file);
+}
+
+void teamTurn(Str36 codenames[], char keycard[], char firstMove, int *gameLost, Str36 agentCards[])
+{
+    Str36 clue;
+    Str36 selectOption;
+    int done = 0, cardN, guess, guessCount = 0, turnOver = 0, blueCount = 0, redCount = 0;
+    int countCards[2] = {0, 0};
+
+    printf("\nSpymaster's turn...\n");
+    while(!done)
+    {
+        printf("\nType 'READY to show keycard\n");
+        printf(">> ");
+        scanf("%s", selectOption);
+        if(strcmp(selectOption, "READY") == 0)
+        {
+            done = 1;
+        }
+        else
+        {
+            printf("Type 'READY' to show the keycard.\n");
+        }
+    }
+    
+    displayBoardWithKeycard(codenames, keycard);
+    printf("\nSpymaster, please give a clue to your team.\n");
+    printf("Clue Format: <word> <number>\n");
+    printf(">> ");
+    scanf("%s %d", clue, &cardN);
+    done = 0;
+    while(!done)
+    {
+        printf("\nType 'DONE to end Spymaster phase\n");
+        printf(">> ");
+        scanf("%s", selectOption);
+        if(strcmp(selectOption, "DONE") == 0)
+        {
+            done = 1;
+        }
+        else
+        {
+            printf("Type 'DONE' to end Spymaster phase.\n");
+        }
+    }
+    printf("\n\n\nAgent phase...\n");
+    displayBoard(codenames);
+    printf("\nAgents, please guess the codenames based on the clue given by your Spymaster.\n");
+    printf("Clue: %s, Number: %d\n", clue, cardN);
+    printf("Enter you guesses (1-25):\n");
+    if(cardN == 0)
+    {
+        cardN = 999;
+    }
+    while(guessCount < cardN && turnOver == 0)
+    {
+        for(int i = 0; i < NUMBER_OF_CODENAMES; i++)
+        {
+            if(keycard[i] == 'B')
+            {
+                blueCount++;
+            }
+            else if(keycard[i] == 'R')
+            {
+                redCount++;
+            }
+        }
+        printf("Guess %d: ", guessCount + 1);
+        scanf("%d", &guess);
+        if(guess < 1 || guess > NUMBER_OF_CODENAMES)
+        {
+            printf("Invalid guess. Please enter a number between 1 and 25.\n");
+        }
+        else if (!strcmp(codenames[guess - 1], agentCards[0]) || !strcmp(codenames[guess - 1], agentCards[1]) || !strcmp(codenames[guess - 1], agentCards[2]))
+        {
+            printf("You have already guessed this codename. Please guess another one.\n");
+        }
+        else
+        {
+            // Here you would check if the guess is correct or not
+            // For now, we will just print the guessed codename
+            printf("You guessed: %s\n", codenames[guess - 1]);
+            switch(keycard[guess - 1])
+            {
+                case 'B':
+                    strcpy(codenames[guess - 1], agentCards[0]);
+                    break;
+                case 'R':
+                    strcpy(codenames[guess - 1], agentCards[1]);
+                    break;
+                case 'I':
+                    strcpy(codenames[guess - 1], agentCards[2]);
+                    break;
+                case 'A':
+                    strcpy(codenames[guess - 1], agentCards[3]);
+                    break;
+            }
+            if(keycard[guess - 1] == firstMove)
+            {
+                printf("Correct guess!\n");
+                switch(firstMove)
+                {
+                    case 'B':
+                        printf("Blue Team gets a point!\n");
+                        break;
+                    case 'R':
+                        printf("Red Team gets a point!\n");
+                        break;
+                }
+                if(blueCount == countCards[0] || redCount == countCards[1])
+                {
+                    printf("A team has won the game!\n");
+                    turnOver = 1; 
+                }
+            }
+            else if(keycard[guess - 1] == 'I')
+            {
+                printf("Innocent guess. No points.\n");
+                turnOver = 1; 
+            }
+            else if(keycard[guess - 1] == 'A')
+            {
+                printf("Assassin! Game over for your team.\n");
+                turnOver = 1;
+                *gameLost = 1;
+            }
+            else
+            {
+                printf("Wrong guess. Other team gets point\n");
+                turnOver = 1;
+            }
+            guessCount++;
+        }
+    }
+    if(keycard[guess - 1] == 'A')
+    {
+        printf("Your team has lost the game due to an assassin guess.\n");
+    }
+    else if(guessCount >= cardN)
+    {
+        printf("You guessed %d codenames correctly!\n", cardN);
+    }
+    else
+    {
+        printf("You guessed %d codenames, but the clue was for %c.\n", guessCount - 1, keycard[guess - 1]);
+    }
+
+    // Game logic would go here
+    // For now, we will just print the current state
+    printf("\nCurrent Game State:\n");
+    displayBoard(codenames);
 }
 
 void selectKeycard(char keycard[], char *firstMove)
@@ -346,10 +525,10 @@ void removePlayer(Player currentPlayers[], Player team[], int *playerCount, char
         validUser = 0;
         switch(teamColor)
         {
-            case 'b':
+            case 'B':
                 printf("Current Blue Team:\n");
                 break;
-            case 'r':
+            case 'R':
                 printf("Current Red Team:\n");
                 break;
         }
@@ -415,10 +594,11 @@ void gameStart(Player playerList[], Str36 codenamesList[])
     Player redTeam[MAX_TEAM_SIZE] = {0};
     Str36 blueSpymaster, redSpymaster;
     Str36 codenames[NUMBER_OF_CODENAMES];
+    Str36 agentCards[] = {"BLUE AGENT", "RED AGENT", "INOCCENT", "ASSASSIN"};
     char keycard[NUMBER_OF_CODENAMES];
     char selectOption[2];
     char firstMove;
-    int done = 0, endGame = 0, playerCountBlue = 0, playerCountRed = 0;
+    int done = 0, endGame = 0, playerCountBlue = 0, playerCountRed = 0, blueCards, redCards, bluePoints = 0, redPoints = 0, gameLost = 0;
 
     do
     {
@@ -452,7 +632,7 @@ void gameStart(Player playerList[], Str36 codenamesList[])
                         addNew(playerList, currentPlayers, blueTeam, &playerCountBlue, playerCountBlue + playerCountRed);
                         break;
                     case '3':
-                        removePlayer(currentPlayers, blueTeam, &playerCountBlue, 'b');
+                        removePlayer(currentPlayers, blueTeam, &playerCountBlue, 'B');
                         break;
                     case '0':
                         if(playerCountBlue < 2)
@@ -505,7 +685,7 @@ void gameStart(Player playerList[], Str36 codenamesList[])
                         addNew(playerList, currentPlayers, redTeam, &playerCountRed, playerCountBlue + playerCountRed);
                         break;
                     case '3':
-                        removePlayer(currentPlayers, redTeam, &playerCountRed, 'r');
+                        removePlayer(currentPlayers, redTeam, &playerCountRed, 'R');
                         break;
                     case '0':
                         if(playerCountRed < 2)
@@ -574,20 +754,79 @@ void gameStart(Player playerList[], Str36 codenamesList[])
     } while(!done);
     randomizeCodenames(codenames, codenamesList);
     selectKeycard(keycard, &firstMove);
-    printf("\nCodenames have been randomized!\n\n");
+    printf("\nCodenames have been randomized!\n");
     printf("Game starting with %d players on Blue Team and %d players on Red Team.\n", playerCountBlue, playerCountRed);
     printf("Spymasters are ready to give clues!\n\n");
     displayBoard(codenames);
     printf("\nFirst move is by: %c\n", firstMove);
-    printf("Keycard: \n");
-    for(int i = 0; i < ROWS; i++)
+    for(int i = 0; i < NUMBER_OF_CODENAMES; i++)
     {
-        for(int j = 0; j < COLUMNS; j++)
+        if(keycard[i] == 'B')
         {
-            printf("%c ", keycard[i * COLUMNS + j]);
+            blueCards++;
         }
-        printf("\n");
+        else if(keycard[i] == 'R')
+        {
+            redCards++;
+        }
     }
+
+    done = 0;
+    do
+    {
+        teamTurn(codenames, keycard, firstMove, &gameLost, agentCards);
+        if(gameLost)
+        {
+            switch (firstMove)
+            {
+                case 'R':
+                    bluePoints = blueCards;
+                    break;
+                case 'B':
+                    redPoints = redCards;
+                    break;
+            }
+        }
+        switch (firstMove)
+        {
+            case 'B':
+                firstMove = 'R'; // Switch to Red Team's turn
+                break;
+            case 'R':
+                firstMove = 'B'; // Switch to Blue Team's turn
+                break;
+        }
+        for(int i = 0; i < NUMBER_OF_CODENAMES; i++)
+        {
+            if(!strcmp(codenames[i], agentCards[0]))
+            {
+                bluePoints++;
+            }
+            else if(!strcmp(codenames[i], agentCards[1]))
+            {
+                redPoints++;
+            }
+        }
+        if(bluePoints >= blueCards)
+        {
+            printf("\nBlue Team wins!\n");
+            done = 1;
+        }
+        else if(redPoints >= redCards)
+        {
+            printf("\nRed Team wins!\n");
+            done = 1;
+        }
+        
+        if(!done)
+        {
+            printf("\nOther team's turn...\n", firstMove);
+        }
+        
+        // Placeholder for game loop
+        // In a real game, you would handle turns, guesses, etc.
+        // done = 1; // For now, we will end the game loop immediately
+    } while(!done);
 
     // greetPlayers(name);
 }
