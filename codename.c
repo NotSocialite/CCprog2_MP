@@ -22,24 +22,73 @@ typedef struct
     int agentWins;
 } Player;
 
+void debugCode (int blueCards, int redCards, int bluePoints, int redPoints, Str36 codenames[])
+{
+    printf("Debugging code...\n");
+    printf("Blue Cards: %d\n", blueCards);
+    printf("Red Cards: %d\n", redCards);
+    printf("Blue Points: %d\n", bluePoints);
+    printf("Red Points: %d\n", redPoints);
+    printf("Codenames:\n");
+    for(int i = 0; i < NUMBER_OF_CODENAMES; i++)
+    {
+        printf("\t- %s\n", codenames[i]);
+    }
+}
+
 void updatePlayers(Player playerList[])
 {
     FILE *file = fopen("players.txt", "w");
     if(file == NULL)
     {
         printf("Error opening players file.\n");
-        exit(1);
     }
-    
-    for(int i = 0; i < MAX_PLAYERS; i++)
+    else
     {
-        if(playerList[i].username[0] != '\0')
+        for(int i = 0; i < MAX_PLAYERS; i++)
         {
-            fprintf(file, "%s %d %d %d %d\n", playerList[i].username, playerList[i].gamesPlayed, playerList[i].wins, playerList[i].spyMasterWins, playerList[i].agentWins);
+            if(playerList[i].username[0] != '\0')
+            {
+                fprintf(file, "%s %d %d %d %d\n", playerList[i].username, playerList[i].gamesPlayed, playerList[i].wins, playerList[i].spyMasterWins, playerList[i].agentWins);
+            }
+        }
+        
+        fclose(file);
+    }
+}
+
+void updateStats(Player playerList[], Player team[], Str36 spymaster, int playerCount, int gameLost)
+{
+    for(int i = 0; i < playerCount; i++)
+    {
+        team[i].gamesPlayed++;
+        if(!gameLost)
+        {
+            team[i].wins++;
+            if(!strcmp(team[i].username, spymaster))
+            {
+                team[i].spyMasterWins++;
+            }
+            else
+            {
+                team[i].agentWins++;
+            }
+        }
+        for(int j = 0; j < MAX_PLAYERS; j++)
+        {
+            if(!strcmp(playerList[j].username, team[i].username))
+            {
+                playerList[j].gamesPlayed = team[i].gamesPlayed;
+                playerList[j].wins = team[i].wins;
+                playerList[j].spyMasterWins = team[i].spyMasterWins;
+                playerList[j].agentWins = team[i].agentWins;
+            }
         }
     }
-    
-    fclose(file);
+}
+
+void continueGame()
+{
 }
 
 void displayMenu()
@@ -49,10 +98,6 @@ void displayMenu()
     printf("\t[2] Continue Game\n");
     printf("\t[3] Leaderboard\n");
     printf("\t[0] Exit\n");
-}
-
-void continueGame()
-{
 }
 
 void displayStats(Player playerList[])
@@ -132,19 +177,25 @@ void loadPlayers(Player playerList[])
     if(file == NULL)
     {
         printf("Error opening keycard file.\n");
-        exit(1);
     }
-    
-    for(int i = 0; i < MAX_PLAYERS; i++)
+    else
     {
-        if(fscanf(file, "%s %d %d %d %d", playerList[i].username, &playerList[i].gamesPlayed, &playerList[i].wins, &playerList[i].spyMasterWins, &playerList[i].agentWins) != 5)
+        for(int i = 0; i < MAX_PLAYERS; i++)
         {
-            break; // Stop reading if we reach the end of the file
+            if(fscanf(file, "%s %d %d %d %d", playerList[i].username, &playerList[i].gamesPlayed, &playerList[i].wins, &playerList[i].spyMasterWins, &playerList[i].agentWins) != 5)
+            {
+                playerList[i].username[0] = '\0';
+                playerList[i].gamesPlayed = 0;
+                playerList[i].wins = 0;
+                playerList[i].spyMasterWins = 0;
+                playerList[i].agentWins = 0;
+            }
         }
+        fclose(file);
     }
     
-    fclose(file);
 }
+
 
 void loadCodenames(Str36 codenames[])
 {
@@ -152,19 +203,20 @@ void loadCodenames(Str36 codenames[])
     if(file == NULL)
     {
         printf("Error opening codenames file.\n");
-        exit(1);
     }
-    
-    for(int i = 0; i < 400; i++)
+    else
     {
-        fgets(codenames[i], WORD_LENGTH, file);
-        if (codenames[i][strlen(codenames[i]) - 1] == '\n') // Check if the last character is a newline
+        for(int i = 0; i < 400; i++)
         {
-            codenames[i][strlen(codenames[i]) - 1] = '\0'; // Remove newline character
+            fgets(codenames[i], WORD_LENGTH, file);
+            if (codenames[i][strlen(codenames[i]) - 1] == '\n') // Check if the last character is a newline
+            {
+                codenames[i][strlen(codenames[i]) - 1] = '\0'; // Remove newline character
+            }
         }
+        
+        fclose(file);
     }
-    
-    fclose(file);
 }
 
 void teamTurn(Str36 codenames[], char keycard[], char firstMove, int *gameLost, Str36 agentCards[])
@@ -344,21 +396,22 @@ void selectKeycard(char keycard[], char *firstMove)
     if(file == NULL)
     {
         printf("Error opening players file.\n");
-        exit(1);
     }
-
-    fscanf(file, "%c", firstMove);
-    
-    for(int i = 0; i < 5; i++)
+    else
     {
-        for(int j = 0; j < 5; j++)
+        fscanf(file, "%c", firstMove);
+        
+        for(int i = 0; i < 5; i++)
         {
-            fscanf(file, " %c", &keycard[gridCount]);
-            gridCount++;
+            for(int j = 0; j < 5; j++)
+            {
+                fscanf(file, " %c", &keycard[gridCount]);
+                gridCount++;
+            }
         }
+        
+        fclose(file);
     }
-    
-    fclose(file);
 }
 
 void randomizeCodenames(Str36 codenames[], Str36 codenamesList[])
@@ -377,6 +430,32 @@ void randomizeCodenames(Str36 codenames[], Str36 codenamesList[])
         usedWords[index] = 1; // Mark the index as used
         strcpy(codenames[i], codenamesList[index]); // Copy the selected codename to the codenames array
     }
+}
+
+int countCards(char keycard[], char color)
+{
+    int count = 0;
+    for(int i = 0; i < NUMBER_OF_CODENAMES; i++)
+    {
+        if(keycard[i] == color)
+        {
+            count++;
+        }
+    }
+    return count;
+}
+
+int addPoints(Str36 agentCard, Str36 codenames[])
+{
+    int points = 0;
+    for(int i = 0; i < NUMBER_OF_CODENAMES; i++)
+    {
+        if(!strcmp(codenames[i], agentCard))
+        {
+            points++;
+        }
+    }
+    return points;
 }
 
 void selectSpymaster(Player team[], Str36 spyMaster)
@@ -592,13 +671,12 @@ void gameStart(Player playerList[], Str36 codenamesList[])
     Player currentPlayers[MAX_CURRENT_PLAYERS] = {0};
     Player blueTeam[MAX_TEAM_SIZE] = {0};
     Player redTeam[MAX_TEAM_SIZE] = {0};
-    Str36 blueSpymaster, redSpymaster;
     Str36 codenames[NUMBER_OF_CODENAMES];
-    Str36 agentCards[] = {"BLUE AGENT", "RED AGENT", "INOCCENT", "ASSASSIN"};
+    Str36 agentCards[] = {"| BLUE AGENT |", "| RED AGENT |", "| INNOCENT |", "| ASSASSIN |"};
+    Str36 blueSpymaster, redSpymaster, selectOption;
     char keycard[NUMBER_OF_CODENAMES];
-    char selectOption[2];
     char firstMove;
-    int done = 0, endGame = 0, playerCountBlue = 0, playerCountRed = 0, blueCards, redCards, bluePoints = 0, redPoints = 0, gameLost = 0;
+    int done = 0, endGame = 0, playerCountBlue = 0, playerCountRed = 0, blueCards = 0, redCards = 0, bluePoints = 0, redPoints = 0, gameLost = 0;
 
     do
     {
@@ -755,21 +833,12 @@ void gameStart(Player playerList[], Str36 codenamesList[])
     randomizeCodenames(codenames, codenamesList);
     selectKeycard(keycard, &firstMove);
     printf("\nCodenames have been randomized!\n");
+    blueCards = countCards(keycard, 'B');
+    redCards = countCards(keycard, 'R');
     printf("Game starting with %d players on Blue Team and %d players on Red Team.\n", playerCountBlue, playerCountRed);
     printf("Spymasters are ready to give clues!\n\n");
     displayBoard(codenames);
     printf("\nFirst move is by: %c\n", firstMove);
-    for(int i = 0; i < NUMBER_OF_CODENAMES; i++)
-    {
-        if(keycard[i] == 'B')
-        {
-            blueCards++;
-        }
-        else if(keycard[i] == 'R')
-        {
-            redCards++;
-        }
-    }
 
     done = 0;
     do
@@ -796,25 +865,21 @@ void gameStart(Player playerList[], Str36 codenamesList[])
                 firstMove = 'B'; // Switch to Blue Team's turn
                 break;
         }
-        for(int i = 0; i < NUMBER_OF_CODENAMES; i++)
-        {
-            if(!strcmp(codenames[i], agentCards[0]))
-            {
-                bluePoints++;
-            }
-            else if(!strcmp(codenames[i], agentCards[1]))
-            {
-                redPoints++;
-            }
-        }
+        bluePoints = addPoints(agentCards[0], codenames);
+        redPoints = addPoints(agentCards[1], codenames);
+        
         if(bluePoints >= blueCards)
         {
             printf("\nBlue Team wins!\n");
+            updateStats(playerList, blueTeam, blueSpymaster, playerCountBlue, 0);
+            updateStats(playerList, redTeam, redSpymaster, playerCountRed, 1);
             done = 1;
         }
         else if(redPoints >= redCards)
         {
             printf("\nRed Team wins!\n");
+            updateStats(playerList, redTeam, redSpymaster, playerCountRed, 0);
+            updateStats(playerList, blueTeam, blueSpymaster, playerCountBlue, 1);
             done = 1;
         }
         
@@ -822,11 +887,24 @@ void gameStart(Player playerList[], Str36 codenamesList[])
         {
             printf("\nOther team's turn...\n", firstMove);
         }
+        // debugCode(blueCards, redCards, bluePoints, redPoints, codenames);
         
-        // Placeholder for game loop
-        // In a real game, you would handle turns, guesses, etc.
-        // done = 1; // For now, we will end the game loop immediately
     } while(!done);
+    // displayEndGameStats(bluePoints, redPoints, blueTeam, redTeam, playerList);
+    displayBoardWithKeycard(codenames, keycard);
+    done = 0;
+    printf("\nGame Over!\n");
+    do
+    {
+        printf("Type 'QUIT' to exit the game\n");
+        printf(">> ");
+        scanf("%s", selectOption);
+        if(strcmp(selectOption, "QUIT") == 0)
+        {
+            done = 1;
+        }
+    } while(!done);
+
 
     // greetPlayers(name);
 }
@@ -835,7 +913,7 @@ int main()
 {
     Player playerList[MAX_PLAYERS] = {0};
     Str36 codenamesList[400] = {0};
-    char selectOption[2];
+    Str36 selectOption;
     int quitGame = 0;
 
     loadPlayers(playerList);
