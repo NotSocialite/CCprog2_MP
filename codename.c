@@ -29,11 +29,11 @@ void debugCode (int blueCards, int redCards, int bluePoints, int redPoints, Str3
     printf("Red Cards: %d\n", redCards);
     printf("Blue Points: %d\n", bluePoints);
     printf("Red Points: %d\n", redPoints);
-    printf("Codenames:\n");
-    for(int i = 0; i < NUMBER_OF_CODENAMES; i++)
-    {
-        printf("\t- %s\n", codenames[i]);
-    }
+    // printf("Codenames:\n");
+    // for(int i = 0; i < NUMBER_OF_CODENAMES; i++)
+    // {
+    //     printf("\t- %s\n", codenames[i]);
+    // }
 }
 
 void updatePlayers(Player playerList[])
@@ -844,6 +844,8 @@ void gameStart(Player playerList[], Str36 codenamesList[])
     do
     {
         teamTurn(codenames, keycard, firstMove, &gameLost, agentCards);
+        bluePoints = addPoints(agentCards[0], codenames);
+        redPoints = addPoints(agentCards[1], codenames);
         if(gameLost)
         {
             switch (firstMove)
@@ -865,8 +867,6 @@ void gameStart(Player playerList[], Str36 codenamesList[])
                 firstMove = 'B'; // Switch to Blue Team's turn
                 break;
         }
-        bluePoints = addPoints(agentCards[0], codenames);
-        redPoints = addPoints(agentCards[1], codenames);
         
         if(bluePoints >= blueCards)
         {
