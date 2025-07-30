@@ -1,3 +1,10 @@
+/**
+ *  Description : Recreation of the board game Codenames
+ *  Author/s : Nañawa, Alfred Brant
+ *  Section : S24
+ *  Last Modified : 7/30/2025
+ *  Acknowledgments : <list of references used in the making of this project> 
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,6 +20,9 @@
 
 typedef char Str36[WORD_LENGTH];
 
+/**
+ * Structure to hold player information
+ */
 typedef struct 
 {
     Str36 username;
@@ -22,6 +32,15 @@ typedef struct
     int agentWins;
 } Player;
 
+/**
+ * Debugging function to print game state
+ * @param blueCards Number of blue cards
+ * @param redCards Number of red cards
+ * @param bluePoints Points for blue team
+ * @param redPoints Points for red team
+ * @param codenames Array of codenames
+ * @return this function does not return anything
+ */
 void debugCode (int blueCards, int redCards, int bluePoints, int redPoints, Str36 codenames[])
 {
     printf("Debugging code...\n");
@@ -36,6 +55,11 @@ void debugCode (int blueCards, int redCards, int bluePoints, int redPoints, Str3
     // }
 }
 
+/**
+ * Function update players into the playerlist when starting the game
+ * @param playerList Array of Player structures
+ * @return this function does not return anything
+ */
 void updatePlayers(Player playerList[])
 {
     FILE *file = fopen("players.txt", "w");
@@ -57,9 +81,22 @@ void updatePlayers(Player playerList[])
     }
 }
 
+/**
+ * Function to update player statistics after a game
+ * @param playerList Array of Player structures
+ * @param team Array of Player structures for the team
+ * @param spymaster The username of the spymaster
+ * @param playerCount Number of players in the team
+ * @param gameWon Indicates if the game was won (1) or lost (0)
+ * @param i index for i
+ * @param j index for j
+ * @return this function does not return anything
+ */
 void updateStats(Player playerList[], Player team[], Str36 spymaster, int playerCount, int gameWon)
 {
-    for(int i = 0; i < playerCount; i++)
+    int i, j;
+
+    for(i = 0; i < playerCount; i++)
     {
         team[i].gamesPlayed++;
         if(gameWon)
@@ -74,7 +111,7 @@ void updateStats(Player playerList[], Player team[], Str36 spymaster, int player
                 team[i].agentWins++;
             }
         }
-        for(int j = 0; j < MAX_PLAYERS; j++)
+        for(j = 0; j < MAX_PLAYERS; j++)
         {
             if(!strcmp(playerList[j].username, team[i].username))
             {
@@ -87,62 +124,207 @@ void updateStats(Player playerList[], Player team[], Str36 spymaster, int player
     }
 }
 
-void loadGame(Player currentPlayers[], Player blueTeam[], Player redTeam[], int *playerCountBlue, int *playerCountRed, Str36 blueSpymaster, Str36 redSpymaster, Str36 codenames[], char keycard[], char firstMove, Str36 agentCards[])
+/**
+ * Function to load save data from a file
+ * @param saveData Array to store save data
+ * @param saveSlot The save slot number to load
+ * @param slotEmpty Flag to indicate if the slot is empty
+ * @return Returns the save slot number if successful, otherwise returns 0
+ */
+int loadSaveData()
 {
-    FILE *file = fopen("savegame.txt", "r");
+    int saveData[3];
+    int saveSlot, slotEmpty = 1;
+
+    FILE *file = fopen("savedata.txt", "r");
+    if(file == NULL)
+    {
+        printf("Error opening save data file.\n");
+        return 0;
+    }
+    else
+    {
+        for(int i = 0; i < 3; i++)
+        {
+            fscanf(file, "%d", &saveData[i]);
+        }
+    }
+    fclose(file);
+
+    do
+    {
+        printf("Select save slot (1-3): ");
+        scanf("%d", &saveSlot);
+        if (saveSlot < 1 || saveSlot > 3)
+        {
+            printf("Invalid save slot. Please choose between 1 and 3.\n");
+        }
+        else if (saveData[saveSlot - 1] == 0)
+        {
+            printf("Save slot %d is empty. Please pick another slot.", saveSlot);
+        }
+        else if (saveData[saveSlot - 1] == 1)
+        {
+            printf("Game is loading...");
+        }
+        
+    } while ((saveSlot < 1 || saveSlot > 3) || slotEmpty);
+    return saveSlot; 
+}
+
+/**
+ * Function to load a saved game
+ * @param blueTeam Array of Player structures for the blue team
+ * @param redTeam Array of Player structures for the red team
+ * @param playerCountBlue Number of players in the blue team
+ * @param playerCountRed Number of players in the red team
+ * @param blueSpymaster The spymaster for the blue team
+ * @param redSpymaster The spymaster for the red team
+ * @param codenames Array of codenames
+ * @param keycard Array representing the keycard
+ * @param guessed Array indicating which codenames have been guessed
+ * @param firstMove Pointer to store which team's turn is first
+ * @return this function does not return anything
+ */
+void loadGame(Player blueTeam[], Player redTeam[], int *playerCountBlue, int *playerCountRed, Str36 blueSpymaster, Str36 redSpymaster, Str36 codenames[], char keycard[], int guessed[], char *firstMove)
+{
+    FILE *file;
+    Str36 savefileName;
+    int saveData[3] = {0, 0, 0};
+    int saveSlot;
+
+    file = fopen("savedata.txt", "r");
+    if(file == NULL)
+    {
+        printf("Error opening save data file.\n");
+    }
+    for(int i = 0; i < 3; i++)
+    {
+        fscanf(file, "%d", &saveData[i]);
+    }
+    fclose(file);
+
+    do
+    {
+        printf("Select save slot (1-3): ");
+        scanf("%d", &saveSlot);
+        if (saveSlot < 1 || saveSlot > 3)
+        {
+            printf("Invalid save slot. Please choose between 1 and 3.\n");
+        }
+        else if (saveData[saveSlot - 1] == 0)
+        {
+            printf("Save slot %d is empty. Please pick another slot.\n", saveSlot);
+            saveSlot = 0;
+        }
+    } while (saveSlot < 1 || saveSlot > 3);
+
+    sprintf(savefileName, "savegame%d.txt", saveSlot);
+    file = fopen(savefileName, "r");
     if(file == NULL)
     {
         printf("Error opening save game file.\n");
     }
-    else
+    fscanf(file, "%d %d %s %s", playerCountBlue, playerCountRed, blueSpymaster, redSpymaster);
+    for(int i = 0; i < *playerCountBlue; i++)
     {
-        fscanf(file, "%d %d %s %s", playerCountBlue, playerCountRed, blueSpymaster, redSpymaster);
-        for(int i = 0; i < *playerCountBlue; i++)
-        {
-            fscanf(file, "%s %d %d %d %d", blueTeam[i].username, &blueTeam[i].gamesPlayed, &blueTeam[i].wins, &blueTeam[i].spyMasterWins, &blueTeam[i].agentWins);
-        }
-        for(int i = 0; i < *playerCountRed; i++)
-        {
-            fscanf(file, "%s %d %d %d %d", redTeam[i].username, &redTeam[i].gamesPlayed, &redTeam[i].wins, &redTeam[i].spyMasterWins, &redTeam[i].agentWins);
-        }
-        fscanf(file, "%c", &firstMove);
-        for(int i = 0; i < NUMBER_OF_CODENAMES; i++)
-        {
-            fscanf(file, "%s %c", codenames[i], &keycard[i]);
-        }
-        
-        fclose(file);
+        fscanf(file, "%s %d %d %d %d", blueTeam[i].username, &blueTeam[i].gamesPlayed, &blueTeam[i].wins, &blueTeam[i].spyMasterWins, &blueTeam[i].agentWins);
     }
+    for(int i = 0; i < *playerCountRed; i++)
+    {
+        fscanf(file, "%s %d %d %d %d", redTeam[i].username, &redTeam[i].gamesPlayed, &redTeam[i].wins, &redTeam[i].spyMasterWins, &redTeam[i].agentWins);
+    }
+    fscanf(file, " %c", firstMove);
+    for(int i = 0; i < NUMBER_OF_CODENAMES; i++)
+    {
+        fscanf(file, "%s %c %d", codenames[i], &keycard[i], &guessed[i]);
+    }
+    fclose(file);
 }
 
-void saveGame(Player currentPlayers[], Player blueTeam[], Player redTeam[], int playerCountBlue, int playerCountRed, Str36 blueSpymaster, Str36 redSpymaster, Str36 codenames[], char keycard[], char firstMove)
+/**
+ * Function to save the current game state to a file
+ * @param blueTeam Array of Player structures for the blue team
+ * @param redTeam Array of Player structures for the red team
+ * @param playerCountBlue Number of players in the blue team
+ * @param playerCountRed Number of players in the red team
+ * @param blueSpymaster The spymaster for the blue team
+ * @param redSpymaster The spymaster for the red team
+ * @param codenames Array of codenames
+ * @param keycard Array representing the keycard
+ * @param guessed Array indicating which codenames have been guessed
+ * @param firstMove Indicates which team's turn is first
+ * @return this function does not return anything
+ */
+void saveGame(Player blueTeam[], Player redTeam[], int playerCountBlue, int playerCountRed, Str36 blueSpymaster, Str36 redSpymaster, Str36 codenames[], char keycard[], int guessed[], char firstMove)
 {
-    FILE *file = fopen("savegame.txt", "w");
+    FILE *file;
+    Str36 savefileName;
+    int saveData[3] = {0, 0, 0};
+    int saveSlot, i;
+
+    file = fopen("savedata.txt", "r");
+    if (file != NULL) 
+    {
+        for (i = 0; i < 3; i++) 
+        {
+            fscanf(file, "%d", &saveData[i]);
+        }
+        fclose(file);
+    }
+
+    do
+    {
+        printf("Select save slot (1-3): ");
+        scanf("%d", &saveSlot);
+        if (saveSlot < 1 || saveSlot > 3)
+        {
+            printf("Invalid save slot. Please choose between 1 and 3.\n");
+        }
+        else if (saveData[saveSlot - 1] == 1)
+        {
+            int overwrite;
+            printf("Save slot %d is already occupied. Overwrite? (1 for Yes, 0 for No): ", saveSlot);
+            scanf("%d", &overwrite);
+            if (!overwrite) saveSlot = 0;
+        }
+    } while (saveSlot < 1 || saveSlot > 3);
+
+    saveData[saveSlot - 1] = 1;
+    file = fopen("savedata.txt", "w");
+    for (i = 0; i < 3; i++) 
+    {
+        fprintf(file, "%d\n", saveData[i]);
+    }
+    fclose(file);
+
+    sprintf(savefileName, "savegame%d.txt", saveSlot);
+    file = fopen(savefileName, "w");
     if(file == NULL)
     {
         printf("Error opening save game file.\n");
     }
-    else
+    fprintf(file, "%d %d %s %s\n", playerCountBlue, playerCountRed, blueSpymaster, redSpymaster);
+    for(int i = 0; i < playerCountBlue; i++)
     {
-        fprintf(file, "%d %d %s %s\n", playerCountBlue, playerCountRed, blueSpymaster, redSpymaster);
-        for(int i = 0; i < playerCountBlue; i++)
-        {
-            fprintf(file, "%s %d %d %d %d\n", blueTeam[i].username, blueTeam[i].gamesPlayed, blueTeam[i].wins, blueTeam[i].spyMasterWins, blueTeam[i].agentWins);
-        }
-        for(int i = 0; i < playerCountRed; i++)
-        {
-            fprintf(file, "%s %d %d %d %d\n", redTeam[i].username, redTeam[i].gamesPlayed, redTeam[i].wins, redTeam[i].spyMasterWins, redTeam[i].agentWins);
-        }
-        fprintf(file, "%s\n", firstMove);
-        for(int i = 0; i < NUMBER_OF_CODENAMES; i++)
-        {
-            fprintf(file, "%s %c\n", codenames[i], keycard[i]);
-        }
-        
-        fclose(file);
+        fprintf(file, "%s %d %d %d %d\n", blueTeam[i].username, blueTeam[i].gamesPlayed, blueTeam[i].wins, blueTeam[i].spyMasterWins, blueTeam[i].agentWins);
     }
+    for(int i = 0; i < playerCountRed; i++)
+    {
+        fprintf(file, "%s %d %d %d %d\n", redTeam[i].username, redTeam[i].gamesPlayed, redTeam[i].wins, redTeam[i].spyMasterWins, redTeam[i].agentWins);
+    }
+    fprintf(file, "%c\n", firstMove);
+    for(int i = 0; i < NUMBER_OF_CODENAMES; i++)
+    {
+        fprintf(file, "%s %c %d\n", codenames[i], keycard[i], guessed[i]);
+    }
+    fclose(file);
 }
 
+/**
+ * Function to display the main menu of the game
+ * @return this function does not return anything
+ */
 void displayMenu()
 {
     printf("Welcome to Codenames!\n");
@@ -152,6 +334,11 @@ void displayMenu()
     printf("\t[0] Exit\n");
 }
 
+/**
+ * Function to display the leaderboard of players
+ * @param playerList Array of Player structures
+ * @return this function does not return anything
+ */
 void displayStats(Player playerList[])
 {
     printf("Leaderboard:\n");
@@ -168,7 +355,17 @@ void displayStats(Player playerList[])
     }
 }
 
-void displayBoard(Str36 codenames[])
+/**
+ * Function to display the game board
+ * @param codenames Array of codenames
+ * @param keycard Array representing the keycard
+ * @param guessed Array indicating which codenames have been guessed
+ * @param agentCards Array of agent cards for display
+ * @param gridCount The current grid count
+ * @param length The length of the string of codenames
+ * @return this function does not return anything
+ */
+void displayBoard(Str36 codenames[], char keycard[], int guessed[], Str36 agentCards[])
 {
     int gridCount = 0;
     size_t length;
@@ -184,7 +381,32 @@ void displayBoard(Str36 codenames[])
             {
                 printf(" ");
             }
-            printf("%s ", codenames[gridCount]);
+            if(guessed[gridCount])
+            {
+                switch (keycard[gridCount])
+                {
+                    case 'B':
+                        printf("%s ", agentCards[0]);
+                        length = strlen(agentCards[0]);
+                        break;
+                    case 'R':
+                        printf("%s ", agentCards[1]);
+                        length = strlen(agentCards[1]);
+                        break;
+                    case 'I':
+                        printf("%s ", agentCards[2]);
+                        length = strlen(agentCards[2]);
+                        break;
+                    case 'A':
+                        printf("%s ", agentCards[3]);
+                        length = strlen(agentCards[3]);
+                        break;
+                }
+            }
+            else
+            {
+                printf("%s ", codenames[gridCount]);
+            }
             for(int k = 0; k < 16 - length; k++)
             {
                 printf(" ");
@@ -195,7 +417,17 @@ void displayBoard(Str36 codenames[])
     }
 }
 
-void displayBoardWithKeycard(Str36 codenames[], char keycard[])
+/**
+ * Function to display the game board with assigned keycard
+ * @param codenames Array of codenames
+ * @param keycard Array representing the keycard
+ * @param guessed Array indicating which codenames have been guessed
+ * @param agentCards Array of agent cards for display
+ * @param gridCount The current grid count
+ * @param length The length of the stiring of codenames
+ * @return this function does not return anything
+ */
+void displayBoardWithKeycard(Str36 codenames[], char keycard[], int guessed[], Str36 agentCards[])
 {
     int gridCount = 0;
     size_t length;
@@ -211,9 +443,34 @@ void displayBoardWithKeycard(Str36 codenames[], char keycard[])
             {
                 printf(" ");
             }
-            printf("%s ", codenames[gridCount]);
-            printf("(%c) ", keycard[gridCount]);
-            for(int k = 0; k < 12 - length; k++)
+            if(guessed[gridCount])
+            {
+                switch (keycard[gridCount])
+                {
+                    case 'B':
+                        printf("%s     ", agentCards[0]);
+                        length = strlen(agentCards[0]);
+                        break;
+                    case 'R':
+                        printf("%s     ", agentCards[1]);
+                        length = strlen(agentCards[1]);
+                        break;
+                    case 'I':
+                        printf("%s     ", agentCards[2]);
+                        length = strlen(agentCards[2]);
+                        break;
+                    case 'A':
+                        printf("%s     ", agentCards[3]);
+                        length = strlen(agentCards[3]);
+                        break;
+                }
+            }
+            else
+            {
+                printf("%s ", codenames[gridCount]);
+                printf("(%c) ", keycard[gridCount]);
+            }
+            for(int k = 0; k < 16 - length; k++)
             {
                 printf(" ");
             }
@@ -223,6 +480,11 @@ void displayBoardWithKeycard(Str36 codenames[], char keycard[])
     }
 }
 
+/**
+ * Function to load player data from a file
+ * @param playerList Array of Player structures
+ * @return this function does not return anything
+ */
 void loadPlayers(Player playerList[])
 {
     FILE *file = fopen("players.txt", "r");
@@ -247,6 +509,11 @@ void loadPlayers(Player playerList[])
     }
 }
 
+/**
+ * Function to load codenames from a file
+ * @param codenames Array of codenames
+ * @return this function does not return anything
+ */
 void loadCodenames(Str36 codenames[])
 {
     FILE *file = fopen("codenames.txt", "r");
@@ -269,6 +536,12 @@ void loadCodenames(Str36 codenames[])
     }
 }
 
+/**
+ * Function to select a keycard for the game
+ * @param keycard Array representing the keycard
+ * @param firstMove Pointer to store which team's turn is first
+ * @return this function does not return anything
+ */
 void selectKeycard(char keycard[], char *firstMove)
 {
     int keycardN, gridCount = 0;
@@ -313,6 +586,14 @@ void selectKeycard(char keycard[], char *firstMove)
     }
 }
 
+/**
+ * Function to randomize codenames from a list
+ * @param codenames Array to store the selected codenames
+ * @param codenamesList Array containing all available codenames
+ * @param usedWords Array to track which words have been used
+ * @param index Index for random selection
+ * @return this function does not return anything
+ */
 void randomizeCodenames(Str36 codenames[], Str36 codenamesList[])
 {
     int usedWords[400] = {0};
@@ -331,6 +612,13 @@ void randomizeCodenames(Str36 codenames[], Str36 codenamesList[])
     }
 }
 
+/**
+ * Function to count the number of cards of a specific color in the keycard
+ * @param keycard Array representing the keycard
+ * @param color The color to count ('B', 'R', 'I', or 'A')
+ * @param count The count of cards of the specified color
+ * @return Returns the count of cards of the specified color
+ */
 int countCards(char keycard[], char color)
 {
     int count = 0;
@@ -344,6 +632,13 @@ int countCards(char keycard[], char color)
     return count;
 }
 
+/**
+ * Function to add points based on the agent card
+ * @param agentCard The agent card to check against
+ * @param codenames Array of codenames
+ * @param points The points to add
+ * @return Returns the number of points added
+ */
 int addPoints(Str36 agentCard, Str36 codenames[])
 {
     int points = 0;
@@ -357,6 +652,15 @@ int addPoints(Str36 agentCard, Str36 codenames[])
     return points;
 }
 
+/**
+ * Function to select a spymaster from the team
+ * @param team Array of Player structures representing the team
+ * @param spyMaster The username of the selected spymaster
+ * @param done Flag to indicate if the selection is done
+ * @param teamCount The number of players in the team
+ * @param selectOption The option selected by the user
+ * @return this function does not return anything
+ */
 void selectSpymaster(Player team[], Str36 spyMaster)
 {
     int done = 0, teamCount = 0, selectOption;
@@ -386,6 +690,20 @@ void selectSpymaster(Player team[], Str36 spyMaster)
     }
 }
 
+/**
+ * Function to add an existing player to the team
+ * @param playerList Array of Player structures containing all players
+ * @param currentPlayers Array of Player structures containing currently playing players
+ * @param team Array of Player structures representing the team
+ * @param playerCount Pointer to the number of players in the team
+ * @param total Total number of players currently playing
+ * @param username The username of the player to add
+ * @param returnFlag Flag to indicate if the user wants to return
+ * @param validUser Flag to indicate if the user is valid
+ * @param notPlaying Flag to indicate if the player is not currently playing
+ * @param playerNum The index of the player in the player list
+ * @return this function does not return anything
+ */
 void addExisting(Player playerList[], Player currentPlayers[], Player team[], int *playerCount, int total)
 {
     Str36 username;
@@ -450,6 +768,18 @@ void addExisting(Player playerList[], Player currentPlayers[], Player team[], in
     }
 }
 
+/**
+ * Function to add a new player to the game
+ * @param playerList Array of Player structures containing all players
+ * @param currentPlayers Array of Player structures containing currently playing players
+ * @param team Array of Player structures representing the team
+ * @param playerCount Pointer to the number of players in the team
+ * @param total Total number of players currently playing
+ * @param username The username of the player to add
+ * @param returnFlag Flag to indicate if the user wants to return
+ * @param validUser Flag to indicate if the user is valid
+ * @return this function does not return anything
+ */
 void addNew(Player playerList[], Player currentPlayers[], Player team[], int *playerCount, int total)
 {
     Str36 username;
@@ -493,6 +823,18 @@ void addNew(Player playerList[], Player currentPlayers[], Player team[], int *pl
     }
 }
 
+/**
+ * Function to remove a player from the game
+ * @param currentPlayers Array of Player structures containing currently playing players
+ * @param team Array of Player structures representing the team
+ * @param playerCount Pointer to the number of players in the team
+ * @param teamColor The color of the team ('B' for Blue, 'R' for Red)
+ * @param username The username of the player to remove
+ * @param returnFlag Flag to indicate if the user wants to return
+ * @param validUser Flag to indicate if the user is valid
+ * @param playerNum The index of the player in the team
+ * @return this function does not return anything
+ */
 void removePlayer(Player currentPlayers[], Player team[], int *playerCount, char teamColor)
 {
     Str36 username;
@@ -560,16 +902,43 @@ void removePlayer(Player currentPlayers[], Player team[], int *playerCount, char
     }
 }
 
+/**
+ * Function to greet players at the start of the game
+ * @param name The name of the player
+ * @return this function does not return anything
+ */
 void greetPlayers(Str36 name)
 {
     printf("Welcome, %s\n\n", name);
 }
 
-int teamTurn(Str36 codenames[], char keycard[], char firstMove, int *gameLost, Str36 agentCards[])
+/**
+ * Function to handle the team turn phase of the game
+ * @param codenames Array of codenames
+ * @param keycard Array representing the keycard
+ * @param firstMove Indicates which team's turn is first
+ * @param gameLost Flag to indicate if the game is lost
+ * @param agentCards Array of agent cards for display
+ * @param guessed Array indicating which codenames have been guessed
+ * @param clue The clue given by the spymaster
+ * @param selectOption The option selected by the user
+ * @param done Flag to indicate if the phase is done
+ * @param cardN The number of codenames to guess
+ * @param guess The current guess made by the agents
+ * @param guessCount The count of guesses made by the agents
+ * @param turnOver Flag to indicate if the turn is over
+ * @param blueCount The count of blue cards guessed
+ * @param redCount The count of red cards guessed
+ * @param hintFlag Flag to indicate if the clue is valid
+ * @param quitGame Flag to indicate if the game is quit
+ * @param cardCount Array to count the number of cards guessed
+ * @return Returns 1 if the game is lost, otherwise returns 0
+ */
+int teamTurn(Str36 codenames[], char keycard[], char firstMove, int *gameLost, Str36 agentCards[], int guessed[])
 {
     Str36 clue;
     Str36 selectOption;
-    int done = 0, cardN, guess, guessCount = 0, turnOver = 0, blueCount = 0, redCount = 0, hintFlag = 0 ,quitGame = 0;
+    int done = 0, cardN, guess, guessCount = 0, turnOver = 0, blueCount = 0, redCount = 0, hintFlag = 0, quitGame = 0;
     int cardCount[] = {0, 0};
 
     printf("\n[%c] Spymaster Phase...\n", firstMove);
@@ -588,16 +957,20 @@ int teamTurn(Str36 codenames[], char keycard[], char firstMove, int *gameLost, S
         }
     }
     
-    displayBoardWithKeycard(codenames, keycard);
+    displayBoardWithKeycard(codenames, keycard, guessed, agentCards);
     printf("\nSpymaster, please give a clue to your team.\n");
     do
     {
         printf("Clue Format: <word> <number>\n");
         printf(">> ");
         scanf("%s %d", clue, &cardN);
+        hintFlag = 1; 
         for(int i = 0; i < NUMBER_OF_CODENAMES; i++)
         {
-            hintFlag = strcmp(clue, codenames[i]);
+            if(strcmp(clue, codenames[i]) == 0)
+            {
+                hintFlag = 0;
+            }
         }
         if (!hintFlag)
         {
@@ -622,8 +995,8 @@ int teamTurn(Str36 codenames[], char keycard[], char firstMove, int *gameLost, S
         else if(!strcmp(selectOption, "QUIT"))
         {
             done = 1;
-            printf("Saving game and quitting...\n");
             quitGame = 1;
+            printf("Saving game and quitting...\n");
         }
         else
         {
@@ -637,7 +1010,7 @@ int teamTurn(Str36 codenames[], char keycard[], char firstMove, int *gameLost, S
             printf("\n");
         }
         printf("Agent phase...\n\n");
-        displayBoard(codenames);
+        displayBoard(codenames, keycard, guessed, agentCards);
         printf("\nAgents, please guess the codenames based on the clue given by your Spymaster.\n");
         printf("Enter '0' to end Agent phase\n\n");
         printf("Clue: %s, Number: %d\n", clue, cardN);
@@ -673,32 +1046,24 @@ int teamTurn(Str36 codenames[], char keycard[], char firstMove, int *gameLost, S
             }
             printf("Guess %d: ", guessCount + 1);
             scanf("%d", &guess);
-            if(guess < 1 || guess > NUMBER_OF_CODENAMES)
+            if(guess == 0)
+            {
+                done = 1;
+                turnOver = 1;
+                printf("Agent phase ended.\n");
+            }
+            else if(guess < 1 || guess > NUMBER_OF_CODENAMES)
             {
                 printf("Invalid guess. Please enter a number between 0 and 25.\n");
             }
-            else if (!strcmp(codenames[guess - 1], agentCards[0]) || !strcmp(codenames[guess - 1], agentCards[1]) || !strcmp(codenames[guess - 1], agentCards[2]))
+            else if (guessed[guess - 1])
             {
                 printf("You have already guessed this codename. Please guess another one.\n");
             }
             else
             {
                 printf("You guessed: %s\n", codenames[guess - 1]);
-                switch(keycard[guess - 1])
-                {
-                    case 'B':
-                        strcpy(codenames[guess - 1], agentCards[0]);
-                        break;
-                    case 'R':
-                        strcpy(codenames[guess - 1], agentCards[1]);
-                        break;
-                    case 'I':
-                        strcpy(codenames[guess - 1], agentCards[2]);
-                        break;
-                    case 'A':
-                        strcpy(codenames[guess - 1], agentCards[3]);
-                        break;
-                }
+                guessed[guess - 1] = 1;
                 if(keycard[guess - 1] == firstMove)
                 {
                     printf("Correct guess!\n");
@@ -750,11 +1115,37 @@ int teamTurn(Str36 codenames[], char keycard[], char firstMove, int *gameLost, S
         }
 
         printf("\nCurrent Game State:\n");
-        displayBoard(codenames);
+        displayBoard(codenames, keycard, guessed, agentCards);
     }
     return quitGame;
 }
 
+/**
+ * Function to continue a saved game
+ * @param playerList Array of Player structures containing all players
+ * @param agentCards Array of agent cards for display
+ * @param currentPlayers Array of Player structures containing currently playing players
+ * @param blueTeam Array of Player structures representing the Blue team
+ * @param redTeam Array of Player structures representing the Red team
+ * @param codenames Array of codenames
+ * @param codenamesList Array containing all available codenames
+ * @param blueSpymaster The username of the Blue team's spymaster
+ * @param redSpymaster The username of the Red team's spymaster
+ * @param selectOption The option selected by the user
+ * @param keycard Array representing the keycard
+ * @param firstMove Indicates which team's turn is first
+ * @param guessed Array indicating which codenames have been guessed
+ * @param done Flag to indicate if the game is done
+ * @param endGame Flag to indicate if the game has ended
+ * @param playerCountBlue The number of players in the Blue team
+ * @param playerCountRed The number of players in the Red team
+ * @param blueCards The number of Blue cards
+ * @param redCards The number of Red cards
+ * @param bluePoints The points scored by the Blue team
+ * @param redPoints The points scored by the Red team
+ * @param gameLost Flag to indicate if the game is lost
+ * @return this function does not return anything
+ */
 void continueGame(Player playerList[], Str36 agentCards[])
 {
     Player currentPlayers[MAX_CURRENT_PLAYERS] = {0};
@@ -765,16 +1156,17 @@ void continueGame(Player playerList[], Str36 agentCards[])
     Str36 blueSpymaster, redSpymaster, selectOption;
     char keycard[NUMBER_OF_CODENAMES] = {0};
     char firstMove;
+    int guessed[NUMBER_OF_CODENAMES] = {0};
     int done = 0, endGame = 0, playerCountBlue = 0, playerCountRed = 0, blueCards = 0, redCards = 0, bluePoints = 0, redPoints = 0, gameLost = 0;
 
-    loadGame(currentPlayers, blueTeam, redTeam, &playerCountBlue, &playerCountRed, blueSpymaster, redSpymaster, codenames, keycard, firstMove, agentCards);
+    loadGame(blueTeam, redTeam, &playerCountBlue, &playerCountRed, blueSpymaster, redSpymaster, codenames, keycard, guessed, &firstMove);
 
     do
     {
-        endGame = teamTurn(codenames, keycard, firstMove, &gameLost, agentCards);
+        endGame = teamTurn(codenames, keycard, firstMove, &gameLost, agentCards, guessed);
         if (endGame)
         {
-            saveGame(currentPlayers, blueTeam, redTeam, playerCountBlue, playerCountRed, blueSpymaster, redSpymaster, codenames, keycard, firstMove);
+            saveGame(blueTeam, redTeam, playerCountBlue, playerCountRed, blueSpymaster, redSpymaster, codenames, keycard, guessed, firstMove);
             printf("Game saved successfully!\n");
             done = 1;
         }
@@ -803,6 +1195,9 @@ void continueGame(Player playerList[], Str36 agentCards[])
                     firstMove = 'B'; 
                     break;
             }
+
+            blueCards = countCards(keycard, 'B');
+            redCards = countCards(keycard, 'R');
             
             if(bluePoints >= blueCards)
             {
@@ -829,22 +1224,34 @@ void continueGame(Player playerList[], Str36 agentCards[])
         // debugCode(blueCards, redCards, bluePoints, redPoints, codenames);
         
     } while(!done);
-    displayBoardWithKeycard(codenames, keycard);
-    done = 0;
-    printf("\nGame Over!\n");
-    do
-    {
-        printf("Type 'QUIT' to exit the game\n");
-        printf(">> ");
-        scanf("%s", selectOption);
-        if(strcmp(selectOption, "QUIT") == 0)
-        {
-            done = 1;
-        }
-    } while(!done);
 }
 
-
+/**
+ * Function to start the game by setting up teams and players
+ * @param playerList Array of Player structures containing all players
+ * @param codenamesList Array containing all available codenames
+ * @param agentCards Array of agent cards for display
+ * @param currentPlayers Array of Player structures containing currently playing players
+ * @param blueTeam Array of Player structures representing the Blue team
+ * @param redTeam Array of Player structures representing the Red team
+ * @param codenames Array of codenames
+ * @param blueSpymaster The username of the Blue team's spymaster
+ * @param redSpymaster The username of the Red team's spymaster
+ * @param selectOption The option selected by the user
+ * @param keycard Array representing the keycard
+ * @param firstMove Indicates which team's turn is first
+ * @param guessed Array indicating which codenames have been guessed
+ * @param done Flag to indicate if the game is done
+ * @param endGame Flag to indicate if the game has ended
+ * @param playerCountBlue The number of players in the Blue team
+ * @param playerCountRed The number of players in the Red team
+ * @param blueCards The number of Blue cards
+ * @param redCards The number of Red cards
+ * @param bluePoints The points scored by the Blue team
+ * @param redPoints The points scored by the Red team
+ * @param gameLost Flag to indicate if the game is lost
+ * @return this function does not return anything
+ */
 void gameStart(Player playerList[], Str36 codenamesList[], Str36 agentCards[])
 {
     Player currentPlayers[MAX_CURRENT_PLAYERS] = {0};
@@ -854,6 +1261,7 @@ void gameStart(Player playerList[], Str36 codenamesList[], Str36 agentCards[])
     Str36 blueSpymaster, redSpymaster, selectOption;
     char keycard[NUMBER_OF_CODENAMES] = {0};
     char firstMove;
+    int guessed[NUMBER_OF_CODENAMES] = {0};
     int done = 0, endGame = 0, playerCountBlue = 0, playerCountRed = 0, blueCards = 0, redCards = 0, bluePoints = 0, redPoints = 0, gameLost = 0;
 
     do
@@ -1015,16 +1423,16 @@ void gameStart(Player playerList[], Str36 codenamesList[], Str36 agentCards[])
     redCards = countCards(keycard, 'R');
     printf("Game starting with %d players on Blue Team and %d players on Red Team.\n", playerCountBlue, playerCountRed);
     printf("Spymasters are ready to give clues!\n\n");
-    displayBoard(codenames);
+    displayBoard(codenames, keycard, guessed, agentCards);
     printf("\nFirst move is by: %c\n", firstMove);
 
     done = 0;
     do
     {
-        endGame = teamTurn(codenames, keycard, firstMove, &gameLost, agentCards);
+        endGame = teamTurn(codenames, keycard, firstMove, &gameLost, agentCards, guessed);
         if (endGame)
         {
-            saveGame(currentPlayers, blueTeam, redTeam, playerCountBlue, playerCountRed, blueSpymaster, redSpymaster, codenames, keycard, firstMove);
+            saveGame(blueTeam, redTeam, playerCountBlue, playerCountRed, blueSpymaster, redSpymaster, codenames, keycard, guessed, firstMove);
             printf("Game saved successfully!\n");
             done = 1;
         }
@@ -1053,6 +1461,9 @@ void gameStart(Player playerList[], Str36 codenamesList[], Str36 agentCards[])
                     firstMove = 'B'; 
                     break;
             }
+
+            blueCards = countCards(keycard, 'B');
+            redCards = countCards(keycard, 'R');
             
             if(bluePoints >= blueCards)
             {
@@ -1080,7 +1491,7 @@ void gameStart(Player playerList[], Str36 codenamesList[], Str36 agentCards[])
         
     } while(!done);
     // displayEndGameStats(bluePoints, redPoints, blueTeam, redTeam, playerList);
-    displayBoardWithKeycard(codenames, keycard);
+    displayBoardWithKeycard(codenames, keycard, guessed, agentCards);
     done = 0;
     printf("\nGame Over!\n");
     do
@@ -1145,3 +1556,14 @@ int main()
     printf("Thank you for playing Codenames!\n");
     return 0;
 }
+
+/**
+ * This is to certify that this project is my/our own work, based on my/our personal  
+ * efforts in studying and applying the concepts learned. I/We have constructed the  
+ * functions and their respective algorithms and corresponding code by myself/ourselves.  
+ * The program was run, tested, and debugged by my/our own efforts. I/We further certify  
+ * that I/we have not copied in part or whole or otherwise plagiarized the work of 
+ * other students and/or persons.
+ * 
+ * Nañawa, Alfred Brant A. (DLSU ID# 12486825)
+ * */
